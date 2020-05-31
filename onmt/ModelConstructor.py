@@ -81,8 +81,8 @@ def build_tm_model(opt, dicts):
     # BUILD EMBEDDING
     if 'src' in dicts:
         # by me 我们用bert的词向量作为embedding, 如果bert的词向量维度和transformer的词向量维度不一致，我们做线性转换
-        if onmt.Constants.BERT_HIDDEN != opt.model_size:
-            bert_linear = nn.Linear(onmt.Constants.BERT_HIDDEN, opt.model_size)
+        if opt.bert_hidden_size != opt.model_size:
+            bert_linear = nn.Linear(opt.bert_hidden_size, opt.model_size)
         else:
             bert_linear = None
 
@@ -108,7 +108,13 @@ def build_tm_model(opt, dicts):
             if opt.not_load_bert_state:
                 print("we dont load the state of Bert from pytorch model or from pretrained model")
                 bert_config = BertConfig.from_json_file(opt.bert_config_dir + "/" + opt.bert_config_name)
-                bert = BertModel(bert_config)
+                bert = BertModel(bert_config,
+                                 bert_word_dropout=opt.bert_word_dropout,
+                                 bert_emb_dropout=opt.bert_emb_dropout,
+                                 bert_atten_dropout=opt.bert_attn_dropout,
+                                 bert_hidden_dropout=opt.bert_hidden_dropout,
+                                 bert_hidden_size=opt.bert_hidden_size
+                                 )
 
             # 这里 bert_model_dir 可以是pytorch提供的预训练模型，也可以是经过自己fine_tune的bert 
             else:
@@ -118,7 +124,13 @@ def build_tm_model(opt, dicts):
                     bert = BertModel.from_pretrained(cache_dir=opt.bert_config_dir,
                                                      weight_name=opt.bert_weight_name,
                                                      config_name=opt.bert_config_name,
-                                                     state_dict=finetuned_state_dict)
+                                                     state_dict=finetuned_state_dict,
+                                                     bert_word_dropout=opt.bert_word_dropout,
+                                                     bert_emb_dropout=opt.bert_emb_dropout,
+                                                     bert_attn_dropout=opt.bert_attn_dropout,
+                                                     bert_hidden_dropout=opt.bert_hidden_dropout,
+                                                     bert_hidden_size=opt.bert_hidden_size
+                                                     )
                 else:
                     print("after builing bert we load the state from Pytorch")
                     bert = BertModel.from_pretrained(cache_dir=opt.bert_config_dir,
@@ -127,7 +139,8 @@ def build_tm_model(opt, dicts):
                                                      bert_word_dropout=opt.bert_word_dropout,
                                                      bert_emb_dropout=opt.bert_emb_dropout,
                                                      bert_hidden_dropout=opt.bert_hidden_dropout,
-                                                     bert_attn_dropout=opt.bert_attn_dropout
+                                                     bert_attn_dropout=opt.bert_attn_dropout,
+                                                     bert_hidden_size=opt.bert_hidden_size
                                                      )
 
             replace_layer_norm(bert, "Transformer")

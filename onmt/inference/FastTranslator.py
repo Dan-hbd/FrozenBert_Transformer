@@ -38,7 +38,7 @@ class FastTranslator(Translator):
         self.no_repeat_ngram_size = 0
 
         if opt.verbose:
-            print('* Current bos id: %d' % self.bos_id, onmt.Constants.BOS)
+            print('* Current bos id: %d' % self.bos_id,  onmt.Constants.BOS_WORD)
 
             # by me
             # 更新： 还原成以前的

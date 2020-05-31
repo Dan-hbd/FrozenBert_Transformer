@@ -58,20 +58,16 @@ class Batch(object):
                                                                     augmenter=augmenter,
                                                                     lang="src")
 
-            # # 为什么有那么多0
             # print("self.tensors['source']:",self.tensors['source'])
-            # 转化为 【sent_length，bat_size】
+            # transpose BxT to TxB
             self.tensors['source'] = self.tensors['source'].transpose(0, 1).contiguous()
             self.tensors['src_length'] = torch.LongTensor(self.src_lengths)
 
-            # source_ids = self.tensors['source']
-            # [bat_size, sent_length, 768*4]
-            # self.tensors['bert_vec'] = make_bert_vec(source_ids)
-
             #src_lengths 是一个list
             batch_size = len(self.src_lengths)
-            self.src_size = sum(self.src_lengths) - batch_size   # 这个batch中 一共有多少个token
-            self.tensors['source_noCLS'] = self.tensors['source'][1:]
+
+            # 这个batch中 一共有多少个token(对每句话减去1的情况下)
+            self.src_size = sum(self.src_lengths) - batch_size   
 
         else:
             self.src_size = 0
@@ -154,12 +150,10 @@ class Batch(object):
         if type == "text":
             lengths = [x.size(0) for x in data]
             max_length = max(lengths)
-            # 尽管两个src 和 tgt的字典的PAD的索引一样，还是做一下区分
             if lang == "src":
-                tensor = data[0].new(len(data), max_length).fill_(onmt.Constants.BERT_PAD)
+                tensor = data[0].new(len(data), max_length).fill_(onmt.Constants.PAD)
             elif lang == "tgt":
                 tensor = data[0].new(len(data), max_length).fill_(onmt.Constants.PAD)
-            # tensor = data[0].new(len(data), max_length).fill_(onmt.Constants.PAD)
             for i in range(len(data)):   # len(data): the batch_size of this batch
                 data_length = data[i].size(0)   # the sent_length of this sentence
                 offset = max_length - data_length if align_right else 0
@@ -370,7 +364,8 @@ class Dataset(object):
                 batch_ = cur_batch[:scaled_size]
                 self.batches.append(batch_)  # add this batch into the batch list
 
-                cur_batch = cur_batch[scaled_size:]  # reset the current batch
+                # reset the current batch
+                cur_batch = cur_batch[scaled_size:]  
                 cur_batch_sizes = cur_batch_sizes[scaled_size:]
                 cur_batch_size = sum(cur_batch_sizes)
 

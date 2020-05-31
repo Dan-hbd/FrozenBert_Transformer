@@ -539,7 +539,10 @@ class BertPreTrainedModel(nn.Module):
     """ An abstract class to handle weights initialization and
         a simple interface for dowloading and loading pretrained models.
     """
-    def __init__(self, config, *inputs, **kwargs):
+    def __init__(self, config,
+                 *inputs,
+                 **kwargs):
+
         super(BertPreTrainedModel, self).__init__()
         if not isinstance(config, BertConfig):
             raise ValueError(
@@ -590,29 +593,10 @@ class BertPreTrainedModel(nn.Module):
         from_tf = kwargs.pop('from_tf', False) # 不从本地加载tensorflow state dictionnary
         BERT_CONFIG_NAME = kwargs.pop('config_name', 'bert_config.json')
         WEIGHTS_NAME = kwargs.pop('weight_name', 'pytorch_model.bin')
-        bert_word_drop = kwargs.pop('bert_word_dropout', None)
-        bert_atten_drop = kwargs.pop('bert_attn_dropout', None)
-        bert_hidden_drop = kwargs.pop('bert_hidden_dropout', None)
-        emb_dropout_prob = kwargs.pop('bert_emb_dropout', None)
 
-        # by me
         serialization_dir = save_dir
         config_file = os.path.join(serialization_dir, BERT_CONFIG_NAME)
         config = BertConfig.from_json_file(config_file)
-        if bert_word_drop:
-            config.bert_word_dropout = bert_word_drop
-        if emb_dropout_prob:
-            config.emb_dropout_prob = emb_dropout_prob
-        if bert_atten_drop:
-            config.attention_probs_dropout_prob = bert_atten_drop
-        if bert_hidden_drop:
-            config.hidden_dropout_prob = bert_hidden_drop
-
-        print("the dropouts we use for bert:")
-        print("bert_word_drop:", bert_word_drop)
-        print("bert_atten_drop:", bert_atten_drop)
-        print("bert_hidden_drop:", bert_hidden_drop)
-        print("emb_dropout_prob:", emb_dropout_prob)
 
         model = cls(config, *inputs, **kwargs)
         # 从 pytorch_model.bin 加载参数
@@ -711,13 +695,28 @@ class BertModel(BertPreTrainedModel):
     all_encoder_layers, pooled_output = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config):
-        super(BertModel, self).__init__(config)
+    def __init__(self, config, bert_word_dropout, bert_emb_dropout, bert_atten_dropout, bert_hidden_dropout,bert_hidden_size):
+        super(BertModel, self).__init__(config,
+                                        bert_word_dropout=0, 
+                                        bert_emb_dropout=0.1, 
+                                        bert_atten_dropout=0.1, 
+                                        bert_hidden_dropout=0.1,
+                                        bert_hidden_size=768
+                                        )
+        # by me
+        config.bert_word_dropout = bert_word_dropout
+        config.bert_emb_dropout = bert_emb_dropout
+        config.bert_atten_dropout = bert_atten_dropout
+        config.bert_hidden_dropout = bert_hidden_dropout
+        config.hidden_size = bert_hidden_size
+
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
         self.pooler = BertPooler(config)
         self.apply(self.init_bert_weights)
         self.hidden_size = config.hidden_size
+
+
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=True):
         if attention_mask is None:

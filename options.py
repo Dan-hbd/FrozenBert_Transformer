@@ -56,7 +56,6 @@ def make_parser(parser):
                         help=""" the path to the pretrained Bert model.""")
     parser.add_argument('-bert_state_dict', default="", type=str,
                         help=""" the state_dict of the  pretrained model""")
-    
     parser.add_argument('-not_load_bert_state', action='store_true',
                         help='only create a  Bert Object, not load the state from pytorch modle or fituned model')
 
@@ -73,8 +72,8 @@ def make_parser(parser):
                         help="""dropout on bert attention, corresponds to attention_probs_dropout_prob""")
     parser.add_argument('-bert_hidden_dropout', type=float, default=0.1,
                         help="""dropout applied on bert hidden, corresponds to hidden_dropout_prob""")
-
-
+    parser.add_argument('-bert_hidden_size', type=int, default=768,
+        help='Size of bert hidden')  
 
     # Transforer Model options
     parser.add_argument('-model_size', type=int, default=512,
