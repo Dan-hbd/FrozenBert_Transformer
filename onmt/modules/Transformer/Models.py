@@ -76,8 +76,9 @@ class TransformerEncoder(nn.Module):
             self.layers = opt.encoder_layers
         else:
             self.layers = opt.layers
-        self.dropout = opt.dropout
-        self.word_dropout = opt.word_dropout
+        self.dropout = opt.hidden_dropout
+        # src对应的worddropout 在bert里面
+        # self.word_dropout = opt.word_dropout
         self.attn_dropout = opt.attn_dropout
         self.enc_emb_dropout = opt.enc_emb_dropout
 
@@ -91,8 +92,8 @@ class TransformerEncoder(nn.Module):
         self.fp16 = opt.fp16
 
         # disable word dropout when switch out is in action
-        if self.switchout > 0.0:
-            self.word_dropout = 0.0
+        # if self.switchout > 0.0:
+        #     self.word_dropout = 0.0
 
         feature_size = opt.input_size
         self.channels = 1  # n. audio channels
@@ -215,8 +216,8 @@ class TransformerDecoder(nn.Module):
         self.n_heads = opt.n_heads
         self.inner_size = opt.inner_size
         self.layers = opt.layers
-        self.dropout = opt.dropout
-        self.word_dropout = opt.word_dropout
+        self.dropout = opt.hidden_dropout
+        self.word_dropout = opt.tgt_word_dropout
         self.attn_dropout = opt.attn_dropout
         self.dec_emb_dropout = opt.dec_emb_dropout
         self.time = opt.time

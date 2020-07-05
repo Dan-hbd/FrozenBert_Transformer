@@ -248,7 +248,7 @@ class Translator(object):
 
                 # by me
                 src_data = [self.src_dict.convertToIdx(b,
-                                                       onmt.Constants.BERT_UNK_WORD)
+                                                       onmt.Constants.UNK_WORD)
                             for b in src_sents]
         elif type == 'asr':
             # no need to deal with this

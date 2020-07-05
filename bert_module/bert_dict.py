@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/dhe/hiwi/Exercises/bert/')
+sys.path.append('/home/dhe/hiwi/Exercises/FrozenBert_Transformer/')
 import onmt.Markdown
 import argparse
 

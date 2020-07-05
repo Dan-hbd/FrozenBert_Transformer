@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/dhe/hiwi/Exercises/bert/')
+sys.path.append('/home/dhe/hiwi/Exercises/FrozenBert_Transformer/')
 
 from pytorch_pretrained_bert import BertTokenizer
 import onmt.Markdown

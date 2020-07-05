@@ -73,7 +73,7 @@ def make_parser(parser):
     parser.add_argument('-bert_hidden_dropout', type=float, default=0.1,
                         help="""dropout applied on bert hidden, corresponds to hidden_dropout_prob""")
     parser.add_argument('-bert_hidden_size', type=int, default=768,
-        help='Size of bert hidden')  
+                            help='Size of bert hidden')
 
     # Transforer Model options
     parser.add_argument('-model_size', type=int, default=512,
@@ -139,9 +139,9 @@ def make_parser(parser):
     parser.add_argument('-max_grad_norm', type=float, default=0,
                         help="""If the norm of the gradient vector exceeds this,
                         renormalize it to have the norm equal to max_grad_norm""")
-    parser.add_argument('-dropout', type=float, default=0.3,
+    parser.add_argument('-hidden_dropout', type=float, default=0.3,
                         help='Dropout probability; applied between LSTM stacks.')
-    parser.add_argument('-word_dropout', type=float, default=0.0,
+    parser.add_argument('-tgt_word_dropout', type=float, default=0.0,
                         help='Dropout probability; applied on embedding indices.')
 
     parser.add_argument('-switchout', type=float, default=0.0,

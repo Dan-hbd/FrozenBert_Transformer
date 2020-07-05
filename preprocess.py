@@ -243,7 +243,7 @@ def make_translation_data(src_file, tgt_file, src_dicts, tgt_dicts, max_src_leng
 
             # by me
             src += [src_dicts.convertToIdx(src_words,
-                                           onmt.Constants.BERT_UNK_WORD)]
+                                           onmt.Constants.UNK_WORD)]
 
             if add_bos:
                 tgt += [tgt_dicts.convertToIdx(tgt_words,

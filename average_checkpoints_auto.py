@@ -62,7 +62,7 @@ def main():
 
     # print(existed_save_files)
     models = existed_save_files
-    # # opt.model should be a string of models, split by |
+    # opt.model should be a string of models, split by |
     # models = list()
 
     # take the top

@@ -133,13 +133,14 @@ def build_tm_model(opt, dicts):
                                                      )
                 else:
                     print("after builing bert we load the state from Pytorch")
+                    # bert_config = BertConfig.from_json_file(opt.bert_config_dir + "/" + opt.bert_config_name)
                     bert = BertModel.from_pretrained(cache_dir=opt.bert_config_dir,
                                                      config_name=opt.bert_config_name,
                                                      weight_name=opt.bert_weight_name,
                                                      bert_word_dropout=opt.bert_word_dropout,
                                                      bert_emb_dropout=opt.bert_emb_dropout,
+                                                     bert_atten_dropout=opt.bert_attn_dropout,
                                                      bert_hidden_dropout=opt.bert_hidden_dropout,
-                                                     bert_attn_dropout=opt.bert_attn_dropout,
                                                      bert_hidden_size=opt.bert_hidden_size
                                                      )
 

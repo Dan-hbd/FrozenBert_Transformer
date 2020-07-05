@@ -32,12 +32,12 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG,
-format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-datefmt='%a, %d %b %Y %H:%M:%S',
-filename='bert-pretraining-hd.log',
-filemode='w')
+#logger = logging.getLogger(__name__)
+#logging.basicConfig(level=logging.DEBUG,
+#format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+#datefmt='%a, %d %b %Y %H:%M:%S',
+#filename='bert-pretraining-hd.log',
+#filemode='w')
 
 
 TF_WEIGHTS_NAME = 'model.ckpt'
@@ -226,7 +226,7 @@ class BertConfig(object):
 try:
     from apex.normalization.fused_layer_norm import FusedLayerNorm as BertLayerNorm
 except ImportError:
-    logger.info("Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex .")
+    print("Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex .")
 
     class BertLayerNorm(nn.Module):
         def __init__(self, hidden_size, eps=1e-12):
