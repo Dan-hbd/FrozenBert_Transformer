@@ -223,25 +223,26 @@ class BertConfig(object):
             writer.write(self.to_json_string())
 
 
-try:
-    from apex.normalization.fused_layer_norm import FusedLayerNorm as BertLayerNorm
-except ImportError:
-    print("Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex .")
-
-    class BertLayerNorm(nn.Module):
-        def __init__(self, hidden_size, eps=1e-12):
-            """Construct a layernorm module in the TF style (epsilon inside the square root).
-            """
-            super(BertLayerNorm, self).__init__()
-            self.weight = nn.Parameter(torch.ones(hidden_size))
-            self.bias = nn.Parameter(torch.zeros(hidden_size))
-            self.variance_epsilon = eps
-
-        def forward(self, x):
-            u = x.mean(-1, keepdim=True)
-            s = (x - u).pow(2).mean(-1, keepdim=True)
-            x = (x - u) / torch.sqrt(s + self.variance_epsilon)
-            return self.weight * x + self.bias
+#Try:
+#    from apex.normalization.fused_layer_norm import FusedLayerNorm as BertLayerNorm
+#Except ImportError:
+#    print("Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex .")
+#
+#    class BertLayerNorm(nn.Module):
+#        def __init__(self, hidden_size, eps=1e-12):
+#            """Construct a layernorm module in the TF style (epsilon inside the square root).
+#            """
+#            super(BertLayerNorm, self).__init__()
+#            self.weight = nn.Parameter(torch.ones(hidden_size))
+#            self.bias = nn.Parameter(torch.zeros(hidden_size))
+#            self.variance_epsilon = eps
+#
+#        def forward(self, x):
+#            u = x.mean(-1, keepdim=True)
+#            s = (x - u).pow(2).mean(-1, keepdim=True)
+#            x = (x - u) / torch.sqrt(s + self.variance_epsilon)
+#            return self.weight * x + self.bias
+BertLayerNorm = torch.nn.LayerNorm
 
 
 class BertEmbeddings(nn.Module):
@@ -250,6 +251,7 @@ class BertEmbeddings(nn.Module):
     def __init__(self, config):
         super(BertEmbeddings, self).__init__()
         self.bert_word_dropout = config.bert_word_dropout
+        print("bert_word_dropout:", self.bert_word_dropout )
         self.word_embeddings = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=0)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
@@ -262,7 +264,9 @@ class BertEmbeddings(nn.Module):
         # 找到第三个dropout, 三个embedding相加后做LN,LN之后，执行一次dropout, 原始bert没有独立的emb_dropout_prob
         if not hasattr(config, 'emb_dropout_prob'):
             config.emb_dropout_prob = config.hidden_dropout_prob
-        self.dropout = nn.Dropout(config.emb_dropout_prob)
+
+        print("emb_dropout_prob:", config.emb_dropout_prob )
+        self.emb_dropout_prob = nn.Dropout(config.emb_dropout_prob)
 
     def forward(self, input_ids, token_type_ids=None):
         seq_length = input_ids.size(1)
@@ -295,7 +299,7 @@ class BertEmbeddings(nn.Module):
 
         embeddings = words_embeddings + position_embeddings + token_type_embeddings
         embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
+        embeddings = self.emb_dropout_prob(embeddings)
         return embeddings
 
 
@@ -314,7 +318,8 @@ class BertSelfAttention(nn.Module):
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
         # 第一次dropout 是 三个emb相加后 做LN 然后 dropout, 这里是第二次dropout，实际是整个token的dropout
-        self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        print("attention dropout:", config.attention_probs_dropout_prob )
+        self.atten_dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
@@ -342,7 +347,7 @@ class BertSelfAttention(nn.Module):
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
         # 找到第二个 dropout 啦
-        attention_probs = self.dropout(attention_probs)
+        attention_probs = self.atten_dropout(attention_probs)
 
         context_layer = torch.matmul(attention_probs, value_layer)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
@@ -358,7 +363,8 @@ class BertSelfOutput(nn.Module):
         # 只不过它的设计拼接后n_head*attention_head_size 刚好等于= hidden_size
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.LayerNorm = BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        print("hidden dropout:", config.hidden_dropout_prob )
+        self.hidden_dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states, input_tensor):
         hidden_states = self.dense(hidden_states)
@@ -367,7 +373,7 @@ class BertSelfOutput(nn.Module):
         # 此处第三个地方做dropout ;  第二次dropout 是 对attend的token 整个的 dropout,
         # 这里是self attention 之后经过layernormalization 之后 dropout, 是对neuron的dropout,而且是layernorm之后，所以这里neurn
         # 的个数是768
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.hidden_dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
         return hidden_states
 
@@ -405,11 +411,11 @@ class BertOutput(nn.Module):
         self.dense = nn.Linear(config.intermediate_size, config.hidden_size)
         self.LayerNorm = BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         # 第四处dropout
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.hidden_dropout = nn.Dropout(config.hidden_dropout_prob)
 
     def forward(self, hidden_states, input_tensor):
         hidden_states = self.dense(hidden_states)
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.hidden_dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
         return hidden_states
 
@@ -438,13 +444,19 @@ class BertEncoder(nn.Module):
         # deepcopy 将被复制对象完全再复制一遍作为独立的新个体单独存在。改变原有被复制对象不会对已经复制出来的新对象产生影响。
         self.layer = nn.ModuleList([copy.deepcopy(layer) for _ in range(config.num_hidden_layers)])
 
+    def create_custom_forward(module):
+        def custom_forward(*inputs):
+            return module(*inputs)
+
+        return custom_forward
 
     def forward(self, hidden_states, attention_mask, output_all_encoded_layers=True):
         all_encoder_layers = []
         for layer_module in self.layer:
-            hidden_states = layer_module(hidden_states, attention_mask)
-            if output_all_encoded_layers:
-                all_encoder_layers.append(hidden_states)
+             hidden_states = layer_module(hidden_states, attention_mask)
+
+             if output_all_encoded_layers:
+                 all_encoder_layers.append(hidden_states)
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
         return all_encoder_layers
@@ -712,7 +724,7 @@ class BertModel(BertPreTrainedModel):
 
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
-        self.pooler = BertPooler(config)
+        #self.pooler = BertPooler(config)
         self.apply(self.init_bert_weights)
         self.hidden_size = config.hidden_size
 
@@ -744,10 +756,11 @@ class BertModel(BertPreTrainedModel):
                                       extended_attention_mask,
                                       output_all_encoded_layers=output_all_encoded_layers)
         sequence_output = encoded_layers[-1]
-        pooled_output = self.pooler(sequence_output)
+        # pooled_output = self.pooler(sequence_output)
         if not output_all_encoded_layers:
             encoded_layers = encoded_layers[-1]
-        return encoded_layers, pooled_output
+        #return encoded_layers, pooled_output
+        return encoded_layers, None 
 
 
 class BertForPreTraining(BertPreTrainedModel):

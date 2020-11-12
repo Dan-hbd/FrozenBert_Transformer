@@ -76,6 +76,11 @@ def make_parser(parser):
                             help='Size of bert hidden')
 
     # Transforer Model options
+    parser.add_argument('-enc_gradient_checkpointing', action='store_true',
+                        help='use gradient checkpointing on encdoer')
+    parser.add_argument('-dec_gradient_checkpointing', action='store_true',
+                        help='use gradient checkpointing on decoder')
+
     parser.add_argument('-model_size', type=int, default=512,
         help='Size of embedding / transformer hidden')      
     parser.add_argument('-inner_size', type=int, default=2048,

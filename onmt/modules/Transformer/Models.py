@@ -81,6 +81,7 @@ class TransformerEncoder(nn.Module):
         # self.word_dropout = opt.word_dropout
         self.attn_dropout = opt.attn_dropout
         self.enc_emb_dropout = opt.enc_emb_dropout
+        self.enc_gradient_checkpointing = opt.enc_gradient_checkpointing
 
         self.time = opt.time
         self.version = opt.version
@@ -143,6 +144,13 @@ class TransformerEncoder(nn.Module):
                           self.attn_dropout, variational=self.varitional_dropout) for _ in
              range(self.layers)])
 
+
+    def create_custom_forward(self, module):
+        def custom_forward(*inputs):
+            return module(*inputs)
+
+        return custom_forward
+
     def forward(self, src, bert_vecs, **kwargs):
         """
         Inputs Shapes:
@@ -166,7 +174,7 @@ class TransformerEncoder(nn.Module):
 
             # 如果bert和transformer的hidden_size 不一致，做线性转换
             if self.vec_linear:
-                emb = self.vec_linear(emb)
+                emb = self.vec_linear(bert_vecs)
             else:
                 emb = bert_vecs
         else:
@@ -186,7 +194,10 @@ class TransformerEncoder(nn.Module):
         context = self.preprocess_layer(context)
 
         for i, layer in enumerate(self.layer_modules):
-            context = layer(context, mask_src)  # batch_size x len_src x d_model
+            if self.enc_gradient_checkpointing and self.training:
+                context = checkpoint(self.create_custom_forward(layer), context, mask_src)
+            else:
+                context = layer(context, mask_src)  # batch_size x len_src x d_model
 
         # From Google T2T
         # if normalization is done in layer_preprocess, then it should also be done
@@ -227,6 +238,7 @@ class TransformerDecoder(nn.Module):
         self.encoder_cnn_downsampling = opt.cnn_downsampling
         self.variational_dropout = opt.variational_dropout
         self.switchout = opt.switchout
+        self.dec_gradient_checkpointing = opt.dec_gradient_checkpointing
 
         if self.switchout > 0:
             self.word_dropout = 0
@@ -291,6 +303,12 @@ class TransformerDecoder(nn.Module):
             emb = torch.relu(self.feature_projector(emb))
         return emb
 
+    def create_custom_forward(self, module):
+        def custom_forward(*inputs):
+            return module(*inputs)
+
+        return custom_forward
+
     def forward(self, input, context, src, atbs=None, **kwargs):
 
         """
@@ -333,9 +351,9 @@ class TransformerDecoder(nn.Module):
 
         for i, layer in enumerate(self.layer_modules):
 
-            if len(self.layer_modules) - i <= onmt.Constants.checkpointing and self.training:
+            if self.dec_gradient_checkpointing and self.training:
 
-                output, coverage = checkpoint(custom_layer(layer), output, context, mask_tgt, mask_src)
+                output, coverage = checkpoint(self.create_custom_forward(layer), output, context, mask_tgt, mask_src)
                 # batch_size x len_src x d_model
 
             else:

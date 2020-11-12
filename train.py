@@ -232,7 +232,8 @@ def main():
         model = build_fusion(opt, dicts)
 
         loss_function = FusionLoss(dicts['tgt'].size(), label_smoothing=opt.label_smoothing)
-
+    
+    print(model)
     n_params = sum([p.nelement() for p in model.parameters()])
     print('* number of all parameters: %d' % n_params)
 

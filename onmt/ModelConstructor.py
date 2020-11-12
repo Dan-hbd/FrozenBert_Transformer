@@ -127,7 +127,7 @@ def build_tm_model(opt, dicts):
                                                      state_dict=finetuned_state_dict,
                                                      bert_word_dropout=opt.bert_word_dropout,
                                                      bert_emb_dropout=opt.bert_emb_dropout,
-                                                     bert_attn_dropout=opt.bert_attn_dropout,
+                                                     bert_atten_dropout=opt.bert_attn_dropout,
                                                      bert_hidden_dropout=opt.bert_hidden_dropout,
                                                      bert_hidden_size=opt.bert_hidden_size
                                                      )
